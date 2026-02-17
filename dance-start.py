@@ -7,7 +7,7 @@ screen=pygame.display.set_mode((width,height))
 background=pygame.image.load("background.png").convert()
 background=pygame.transform.scale(background,(width,height))
 clock=pygame.time.Clock()
-state="menu,game"
+state="menu"
 done=False
 def begin_start():
     screen.fill(WHITE)
@@ -17,12 +17,14 @@ def begin_start():
 
     small_font=pygame.font.SysFont("Arial",30)
     message=small_font.render("Presiona ESPACIO para continuar",True,(180,180,180))
+    message_rect=message.get_rect(center=(width/2,height/2+100))    
     screen.blit(message,(200,350))
 
 def start_game():
     screen.fill(WHITE)
     font=pygame.font.SysFont("Arial",50)
-    title=font.render("¡A bailar!",True,(0,0,0))
+    title=font.render("¡A bailar!",True,(255,255,255))
+    title_rect=title.get_rect(center=(width/2,height/2+100))    
     screen.blit(title,(250,200))
 while not done:
     for event in pygame.event.get():

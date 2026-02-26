@@ -1,148 +1,161 @@
-import pygame,random,sys
+import pygame,random,sys  # Importa librerías: pygame (juegos), random (números aleatorios), sys (salir del programa)
 
 #--------- CONFIGURACIÓN INICIAL ---------
-width=800  # Ancho de la ventana en píxeles
-height=600  # Alto de la ventana en píxeles
-BLACK=(0,0,0)  # Color negro (nombre confuso, debería ser BLACK)
+width=800  # Ancho de la ventana: 800 píxeles
+height=600  # Alto de la ventana: 600 píxeles
+BLACK=(0,0,0)  # Color negro en formato RGB (Red, Green, Blue)
 
-pygame.init()  # Inicializa todos los módulos de Pygame
-screen=pygame.display.set_mode((width,height))  # Crea la ventana del juego
+pygame.init()  # Inicializa todos los módulos de Pygame (gráficos, sonido, eventos, etc)
+screen=pygame.display.set_mode((width,height))  # Crea la ventana del juego de 800x600
 
 # CARGA Y PROCESA IMAGEN DE FONDO DEL MENÚ
-background=pygame.image.load("background.png").convert_alpha()  # Carga imagen con transparencia
-background=pygame.transform.scale(background,(width,height))  # Redimensiona al tamaño de ventana
-background.set_alpha(128)  # Le da 50% de transparencia (0=invisible, 255=opaco)
+background=pygame.image.load("background.png").convert_alpha()  # Carga la imagen del menú con soporte de transparencia
+background=pygame.transform.scale(background,(width,height))  # Redimensiona la imagen para que ocupe toda la ventana
+background.set_alpha(128)  # Hace la imagen 50% transparente (0=invisible, 255=completamente opaco)
 
 # CARGA IMAGEN DE FONDO DEL JUEGO
-background_dance=pygame.image.load("background_start_game.png").convert_alpha()
-background_dance=pygame.transform.scale(background_dance,(width,height))
+background_dance=pygame.image.load("background_start_game.png").convert_alpha()  # Carga el fondo con los 4 carriles de colores
+background_dance=pygame.transform.scale(background_dance,(width,height))  # Lo ajusta al tamaño de la ventana
 
-# CARGA IMÁGENES DE BOTONES (nombres intercambiados por error)
-botton_blue= pygame.image.load("button_red.png").convert_alpha()  # Carga botón "rojo" pero lo llama blue
-botton_blue=pygame.transform.scale(botton_blue,(80,80))  # Lo hace de 80x80 píxeles
+# ✅ CARGA BOTONES NORMALES PRIMERO (estado sin presionar)
+botton_blue = pygame.image.load("button_blue.png").convert_alpha()  # Carga imagen del botón azul
+botton_blue = pygame.transform.scale(botton_blue,(80,80))  # Lo redimensiona a 80x80 píxeles
 
-botton_red=pygame.image.load("button_blue.png").convert_alpha()  # Carga botón "azul" pero lo llama red
-botton_red=pygame.transform.scale(botton_red,(80,80))
+botton_red = pygame.image.load("button_red.png").convert_alpha()  # Carga imagen del botón rojo
+botton_red = pygame.transform.scale(botton_red,(80,80))  # 80x80 píxeles
 
-botton_yellow=pygame.image.load("button_yellow.png").convert_alpha()
-botton_yellow=pygame.transform.scale(botton_yellow,(80,80))
+botton_yellow = pygame.image.load("button_yellow.png").convert_alpha()  # Carga imagen del botón amarillo
+botton_yellow = pygame.transform.scale(botton_yellow,(80,80))  # 80x80 píxeles
+
+# ✅ CARGA BOTONES PRESIONADOS DESPUÉS (estado cuando el jugador presiona la tecla)
+botton_red_pressed = pygame.image.load("button_red_pressed.png").convert_alpha()  # Versión "presionada" del botón rojo
+botton_red_pressed = pygame.transform.scale(botton_red_pressed,(80,80))  # 80x80 píxeles
+
+botton_blue_pressed = pygame.image.load("button_blue_pressed.png").convert_alpha()  # Versión "presionada" del botón azul
+botton_blue_pressed = pygame.transform.scale(botton_blue_pressed,(80,80))  # 80x80 píxeles
+
+botton_yellow_pressed = pygame.image.load("button_yellow_pressed.png").convert_alpha()  # Versión "presionada" del botón amarillo
+botton_yellow_pressed = pygame.transform.scale(botton_yellow_pressed,(80,80))  # 80x80 píxeles
+
+# Estado de los botones (diccionario que guarda si cada tecla está presionada o no)
 button_states = {
-    'a': {'pressed': False},
-    's': {'pressed': False},
-    'd': {'pressed': False}
+    'a': False,  # Tecla A (botón rojo): False = no presionada, True = presionada
+    's': False,  # Tecla S (botón azul): False = no presionada, True = presionada
+    'd': False   # Tecla D (botón amarillo): False = no presionada, True = presionada
 }
-#--------- VARIABLES DE CONTROL DEL JUEGO ---------
-clock=pygame.time.Clock()  # Controla los FPS (cuadros por segundo)
-state="menu"  # Estado actual: puede ser "menu" o "game"
-done=False  # Variable que controla el loop principal (False=sigue jugando)
 
-start_time=None  # Guarda el momento en que empieza el juego (para el temporizador)
-show_start=True  # Controla si muestra el texto "¡A bailar!" (True=mostrar, False=ocultar)
-show_buttons=True  # Variable declarada pero no usada en el código
-coord_x=10  # Coordenada X (no se usa actualmente)
-coord_y=10  # Coordenada Y (no se usa actualmente)
-x_speed=0  # Velocidad horizontal (no se usa actualmente)
-y_speed=0  # Velocidad vertical (no se usa actualmente)
+#--------- VARIABLES DE CONTROL DEL JUEGO ---------
+clock = pygame.time.Clock()  # Objeto que controla la velocidad del juego (FPS - frames por segundo)
+state = "menu"  # Estado actual del juego: "menu" = pantalla de inicio, "game" = jugando
+done = False  # Controla si el juego debe seguir ejecutándose (False = sigue, True = termina)
+start_time = None  # Guarda el momento exacto (en milisegundos) cuando empieza el juego, para el temporizador
+show_start = True  # Controla si debe mostrar el texto "¡A bailar!" (True = mostrar, False = ocultar)
 
 #--------- FUNCIONES ---------
 
 # PANTALLA DE MENÚ INICIAL
 def begin_start():
-    screen.blit(background,(0,0))  # Dibuja el fondo del menú en posición (0,0)
-    small_font=pygame.font.SysFont("Arial",32)  # Crea fuente Arial tamaño 32
-    message=small_font.render("Presiona ESPACIO para continuar",True,(255,255,255))  # Crea texto blanco
-    message_rect=message.get_rect(center=(width/2,height/2+100))  # Calcula posición centrada
-    screen.blit(message,(200,350))  # Dibuja el texto (nota: ignora message_rect y usa coordenadas fijas)
+    screen.blit(background,(0,0))  # Dibuja el fondo del menú en la esquina superior izquierda (posición 0,0)
+    small_font = pygame.font.SysFont("Arial",32)  # Crea una fuente Arial de tamaño 32
+    message = small_font.render("Presiona ESPACIO para continuar",True,(255,255,255))  # Crea el texto en color blanco
+    message_rect = message.get_rect(center=(width/2,height/2+100))  # Calcula la posición centrada (horizontal: 400, vertical: 400)
+    screen.blit(message,message_rect)  # Dibuja el texto en la posición calculada
 
 # PANTALLA DEL JUEGO
 def start_game():
-    global show_start  # Permite modificar la variable show_start desde dentro de la función
-    screen.blit(background_dance,(0,0))  # Dibuja el fondo
+    global show_start  # Permite modificar la variable global show_start desde dentro de esta función
+    screen.blit(background_dance,(0,0))  # Dibuja el fondo del juego (con los 4 carriles)
     
-    if show_start:  # Si show_start es True...
-        # Muestra el texto "¡A bailar!" durante 3 segundos
-        font=pygame.font.SysFont("Arial",50)
-        title=font.render("¡A bailar!",True,(255,255,255))
-        title_rect=title.get_rect(center=(width/2,height/2))  # Centra el texto
-        screen.blit(title,title_rect)  # Lo dibuja
-    else:  # Después de 3 segundos...
-        logic()  # Llama a la función logic() que maneja el juego
-# LÓGICA DEL JUEGO (detecta teclas A, S, D)
-def logic():
-    global button_states
-    base_y=500
-    pressed_y=520
-   # Dibuja botón azul (A) - se mueve si está presionado
-    y_blue = pressed_y if button_states['a']['pressed'] else base_y
-    screen.blit(botton_blue, (190, y_blue))
-    
-    # Dibuja botón rojo (S) - se mueve si está presionado
-    y_red = pressed_y if button_states['s']['pressed'] else base_y
-    screen.blit(botton_red, (300, y_red))
-    
-    # Dibuja botón amarillo (D) - se mueve si está presionado
-    y_yellow = pressed_y if button_states['d']['pressed'] else base_y
-    screen.blit(botton_yellow, (410, y_yellow))
+    if show_start:  # Si show_start es True (primeros 3 segundos)...
+        font = pygame.font.SysFont("Arial",50)  # Crea fuente Arial tamaño 50
+        title = font.render("¡A bailar!",True,(255,255,255))  # Crea el texto "¡A bailar!" en blanco
+        title_rect = title.get_rect(center=(width/2,height/2))  # Calcula posición centrada en pantalla
+        screen.blit(title,title_rect)  # Dibuja el texto centrado
+    else:  # Si show_start es False (después de 3 segundos)...
+        draw_game()  # Llama a la función que dibuja los botones y el juego
 
-    for event in pygame.event.get():  # Revisa todos los eventos
-        if event.type==pygame.QUIT:  # Si cierran la ventana
-            pygame.quit()
-            sys.exit()
-        
-        if event.type==pygame.KEYDOWN:  # Si presionan una tecla
-            if event.key==pygame.K_a:
-                button_states['a']['pressed']=True #Marca presionado
-                print("Bailas con A")
-            if event.key==pygame.K_s:
-                button_states['s']['pressed']=True #Marca presionado
-                print("Bailas con S")
-            if event.key==pygame.K_d:
-               button_states['d']['pressed']=True #Marca presionado
-               print("Bailas con D")
-        
-        if event.type==pygame.KEYUP:  # Si sueltan una tecla
-            if event.key==pygame.K_a:
-                button_states['a']['pressed']=False #Marca no presionado
-                print("frenas con A")
-            if event.key==pygame.K_s:
-                button_states['a']['pressed']=False #Marca no presionado
-                print("frenas con s")
-            if event.key==pygame.K_d:
-               button_states['a']['pressed']=False #Marca no presionado
-               print("frenas con d")
+# ✅ DIBUJA LOS BOTONES DEL JUEGO (esta función SOLO dibuja, NO maneja eventos de teclado)
+def draw_game():
+    screen.blit(background_dance,(0,0))  # Dibuja primero el fondo del juego
+    
+    # Botón ROJO (controlado por tecla A) - se posiciona en el carril izquierdo (X=190)
+    if button_states['a']:  # Si la tecla A está presionada...
+        screen.blit(botton_red_pressed,(190,500))  # Dibuja la versión presionada del botón rojo
+    else:  # Si la tecla A NO está presionada...
+        screen.blit(botton_red,(190,500))  # Dibuja la versión normal del botón rojo
+    
+    # Botón AZUL (controlado por tecla S) - se posiciona en el carril del medio (X=300)
+    if button_states['s']:  # Si la tecla S está presionada...
+        screen.blit(botton_blue_pressed,(300,500))  # Dibuja la versión presionada del botón azul
+    else:  # Si la tecla S NO está presionada...
+        screen.blit(botton_blue,(300,500))  # Dibuja la versión normal del botón azul
+    
+    # Botón AMARILLO (controlado por tecla D) - se posiciona en el carril derecho (X=410)
+    if button_states['d']:  # Si la tecla D está presionada...
+        screen.blit(botton_yellow_pressed,(410,500))  # Dibuja la versión presionada del botón amarillo
+    else:  # Si la tecla D NO está presionada...
+        screen.blit(botton_yellow,(410,500))  # Dibuja la versión normal del botón amarillo
 
 #--------- LOOP PRINCIPAL DEL JUEGO (se ejecuta 60 veces por segundo) ---------
-while not done:  # Mientras done sea False, sigue ejecutándose
+while not done:  # Mientras done sea False, este loop se repite infinitamente
     
-    # MANEJO DE EVENTOS
-    for event in pygame.event.get():  # Revisa todos los eventos (clicks, teclas, etc)
-        if event.type==pygame.QUIT:  # Si cierran la ventana con la X
-            done=True  # Sale del loop
+    # ✅ MANEJO DE EVENTOS (clicks, teclas, cerrar ventana, etc)
+    for event in pygame.event.get():  # Revisa todos los eventos que ocurrieron en este frame
+        if event.type == pygame.QUIT:  # Si el usuario cerró la ventana con la X...
+            done = True  # Cambia done a True para salir del loop y terminar el juego
         
-        if event.type==pygame.KEYDOWN:  # Si presionan una tecla
-            # Si están en el menú y presionan ESPACIO
-            if state=="menu" and event.key==pygame.K_SPACE:
-                state="game"  # Cambia al estado de juego
-                start_time=pygame.time.get_ticks()  # Guarda el tiempo actual en milisegundos
-                show_start=True  # Muestra el texto "¡A bailar!"
+        if event.type == pygame.KEYDOWN:  # Si el usuario PRESIONÓ una tecla...
+            # Cambio de estado: de menú a juego
+            if state == "menu" and event.key == pygame.K_SPACE:  # Si está en el menú Y presionó ESPACIO...
+                state = "game"  # Cambia el estado a "game" para empezar a jugar
+                start_time = pygame.time.get_ticks()  # Guarda el tiempo actual en milisegundos (ej: 5000 = 5 segundos desde que inició Pygame)
+                show_start = True  # Activa la bandera para mostrar "¡A bailar!"
             
-            # Si están en el juego y presionan ESC
-            if state=="game" and event.key==pygame.K_ESCAPE:
-                state="menu"  # Vuelve al menú
+            # Volver al menú desde el juego
+            if state == "game" and event.key == pygame.K_ESCAPE:  # Si está jugando Y presionó ESC...
+                state = "menu"  # Vuelve al menú principal
+            
+            # ✅ Detecta las teclas del juego A, S, D (solo cuando ya terminó el texto "¡A bailar!")
+            if state == "game" and not show_start:  # Si está en estado "game" Y show_start es False...
+                if event.key == pygame.K_a:  # Si presionó la tecla A...
+                    button_states['a'] = True  # Marca el botón rojo como presionado
+                    print("Bailas con A - ROJO")  # Muestra mensaje en consola
+                if event.key == pygame.K_s:  # Si presionó la tecla S...
+                    button_states['s'] = True  # Marca el botón azul como presionado
+                    print("Bailas con S - AZUL")  # Muestra mensaje en consola
+                if event.key == pygame.K_d:  # Si presionó la tecla D...
+                    button_states['d'] = True  # Marca el botón amarillo como presionado
+                    print("Bailas con D - AMARILLO")  # Muestra mensaje en consola
+        
+        if event.type == pygame.KEYUP:  # Si el usuario SOLTÓ una tecla...
+            if event.key == pygame.K_a:  # Si soltó la tecla A...
+                button_states['a'] = False  # Marca el botón rojo como NO presionado
+                print("Frenas con A")  # Mensaje en consola
+            if event.key == pygame.K_s:  # Si soltó la tecla S...
+                button_states['s'] = False  # Marca el botón azul como NO presionado
+                print("Frenas con S")  # Mensaje en consola
+            if event.key == pygame.K_d:  # Si soltó la tecla D...
+                button_states['d'] = False  # Marca el botón amarillo como NO presionado
+                print("Frenas con D")  # Mensaje en consola
     
-    # TEMPORIZADOR: Oculta "¡A bailar!" después de 3 segundos
-    if state=="game" and start_time is not None:
-        elapsed_time = (pygame.time.get_ticks() - start_time) / 1000  # Calcula segundos transcurridos
-        if elapsed_time >= 3:  # Si pasaron 3 segundos o más
-            show_start=False  # Oculta el texto
+    # TEMPORIZADOR: cuenta 3 segundos y luego oculta "¡A bailar!"
+    if state == "game" and start_time is not None:  # Si está en modo juego Y el temporizador ya comenzó...
+        elapsed_time = (pygame.time.get_ticks() - start_time) / 1000  # Calcula cuántos segundos han pasado desde start_time
+        # Ejemplo: si start_time=5000 y ahora son 8000 milisegundos → (8000-5000)/1000 = 3 segundos
+        if elapsed_time >= 3:  # Si pasaron 3 segundos o más...
+            show_start = False  # Oculta el texto "¡A bailar!" y muestra los botones del juego
     
-    # DIBUJA LA PANTALLA CORRESPONDIENTE SEGÚN EL ESTADO
-    if state=="menu":
-        begin_start()  # Dibuja el menú
-    elif state=="game":
-        start_game()  # Dibuja el juego
+    # DIBUJA LA PANTALLA CORRESPONDIENTE SEGÚN EL ESTADO ACTUAL
+    if state == "menu":  # Si el estado es "menu"...
+        begin_start()  # Llama a la función que dibuja la pantalla de inicio
+    elif state == "game":  # Si el estado es "game"...
+        start_game()  # Llama a la función que dibuja la pantalla del juego
     
-    pygame.display.flip()  # Actualiza toda la pantalla (muestra lo dibujado)
+    pygame.display.flip()  # Actualiza TODA la pantalla (hace visible todo lo que se dibujó en este frame)
+    # Sin esta línea, nada de lo que dibujas se vería en la ventana
+    
     clock.tick(60)  # Limita el juego a 60 FPS (frames por segundo)
+    # Esto significa que el loop while se ejecuta exactamente 60 veces cada segundo
+    # Si el código es muy rápido, espera; si es muy lento, intenta alcanzar 60 FPS
 
-pygame.quit()  # Cierra Pygame al salir del loop
+pygame.quit()  # Cierra Pygame correctamente cuando termina el loop (done = True)

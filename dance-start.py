@@ -159,3 +159,5 @@ while not done:  # Mientras done sea False, este loop se repite infinitamente
     # Si el código es muy rápido, espera; si es muy lento, intenta alcanzar 60 FPS
 
 pygame.quit()  # Cierra Pygame correctamente cuando termina el loop (done = True)
+
+#Problemas principales

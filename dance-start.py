@@ -3,6 +3,9 @@ import pygame,random,sys
 width=800  
 height=600 
 BLACK=(0,0,0)  
+HORIZON_Y = 280  
+LANE_X_TARGETS = [280, 400, 520] 
+HIT_ZONE_Y = 530
 pygame.mixer.init()
 songs=[
     {"name":"Cancion 1","file":"music/A Rising Wave - Jeremy Blake.mp3"},
@@ -49,60 +52,80 @@ button_states = {
 }
 score=0
 combo=0
+feedback_message = ""
+feedback_timer = 0  
+feedback_color = (255, 255, 255) 
 notes=[]
 note_speed=4
+
 def spawn_note():
     lane = random.randint(0, 2)
-    colors = [(255, 50, 50), (50, 100, 255), (255, 255, 50)]
-    lane_positions = {0: 210, 1: 320, 2: 430}  # Centros de los carriles
+    colors = [(255, 50, 50), (50, 150, 255), (255, 255, 50)]
     
     note = {
         "lane": lane,
-        "x": lane_positions[lane],
-        "y": 0,  # Empieza desde arriba
+        "x": 400,         # <--- ESTO ES LO QUE FALTA (KeyError: 'x')
+        "y": 280,         # HORIZON_Y (donde está el brillo en la imagen)
         "color": colors[lane],
         "hit": False
     }
     notes.append(note)
 def draw_lanes():
-    pygame.draw.line(screen, (255, 80, 80), (210, 0), (210, 500), 6)
-    
 
-    pygame.draw.line(screen, (80, 150, 255), (320, 0), (320, 500), 6)
-    
-
-    pygame.draw.line(screen, (255, 255, 80), (430, 0), (430, 500), 6)
-
+    lane_colors = [(200, 0, 0), (0, 100, 255), (200, 200, 0)]
+    for i in range(3):
+        pygame.draw.line(screen, lane_colors[i], (400, HORIZON_Y), (LANE_X_TARGETS[i], 600), 5)
 def draw_hit_line():
-    hit_zone = pygame.Surface((500, 60))
+    hit_zone = pygame.Surface((400, 60))
     hit_zone.set_alpha(80)
     hit_zone.fill((255, 255, 255))
-    screen.blit(hit_zone, (130, 440))
-
-    pygame.draw.line(screen, (255, 255, 255), (130, 440), (630, 440), 3)
-    pygame.draw.line(screen, (255, 255, 255), (130, 500), (630, 500), 3)
+    screen.blit(hit_zone, (180, 420)) 
+    
+    
+    pygame.draw.line(screen, (255, 255, 255), (180, 420), (580, 420), 3)
+    pygame.draw.line(screen, (255, 255, 255), (180, 480), (580, 480), 3)
 
 def update_notes():
     global combo, score
+
+    HORIZON_Y = 280
+    LANE_X_TARGETS = [280, 400, 520] 
+    HIT_ZONE_Y = 530 
+
     for note in notes[:]:
         note["y"] += note_speed
         
-        if note["y"] > 520 and not note["hit"]:
+
+        progress = (note["y"] - HORIZON_Y) / (HIT_ZONE_Y - HORIZON_Y)
+        progress = max(0, progress)
+        
+
+        target_x = LANE_X_TARGETS[note["lane"]]
+        note["x"] = 400 + (target_x - 400) * progress  
+        
+ 
+        if note["y"] > HIT_ZONE_Y + 50 and not note["hit"]:
             notes.remove(note)
             combo = 0
-            print("❌ MISS!")
-        
-        elif note["y"] > height and note["hit"]:
+            print("❌ MISS CLICK")
+        elif note["y"] > 600 and note["hit"]:
             notes.remove(note)
-
 def draw_notes():
     for note in notes:
         if not note["hit"]:
-            pygame.draw.circle(screen, note["color"], (note["x"], int(note["y"])), 25)
-
-            pygame.draw.circle(screen, (255, 255, 255), (note["x"], int(note["y"])), 25, 4)
+            distancia_recorrida = note["y"] - HORIZON_Y
+            progress = max(0, distancia_recorrida / 300)
             
-            pygame.draw.circle(screen, (255, 255, 255), (note["x"], int(note["y"])), 10)
+
+            radius = int(8 + (24 * progress))
+            
+
+            pygame.draw.circle(screen, note["color"], (int(note["x"]), int(note["y"])), radius)
+            
+
+            pygame.draw.circle(screen, (255, 255, 255), (int(note["x"]), int(note["y"])), radius, 2)
+            
+            pygame.draw.circle(screen, (255, 255, 255), (int(note["x"]), int(note["y"])), radius // 3)
 
 def check_hit(lane):
     global score, combo
@@ -110,16 +133,40 @@ def check_hit(lane):
     lane_num = lane_map.get(lane, -1)
     
     for note in notes:
-        if note["lane"] == lane_num and 420 < note["y"] < 520 and not note["hit"]:
+        # Verificamos que la nota esté en el carril correcto y cerca del HIT_ZONE_Y
+        if note["lane"] == lane_num and abs(note["y"] - HIT_ZONE_Y) < 40 and not note["hit"]:
             note["hit"] = True
-            score += 100 + (combo * 10)
+            score += 100
             combo += 1
-            print(f"✅ HIT! +{100 + (combo * 10)} - Combo: {combo}x")
+            print(f"🔥 GOOD CLICK! Combo: {combo}")
             return True
-    
+            
+    print("💀 MISS CLICK (A destiempo)")
     combo = 0
-    print("❌ Miss - combo perdido")
     return False
+   
+def draw_feedback():
+    global feedback_timer
+    
+    if feedback_timer > 0:
+        alpha = min(255, feedback_timer * 8)
+        
+        font = pygame.font.SysFont("Arial", 60, bold=True)
+        text = font.render(feedback_message, True, feedback_color)
+        text_rect = text.rect(center=(width//2, 150))
+        
+        bg_surface = pygame.Surface((text.get_width() + 40, text.get_height() + 20))
+        bg_surface.set_alpha(alpha // 2)
+        bg_surface.fill((0, 0, 0))
+        screen.blit(bg_surface, (text_rect.x - 20, text_rect.y - 10))
+        
+
+        text_surface = font.render(feedback_message, True, feedback_color)
+        text_surface.set_alpha(alpha)
+        screen.blit(text_surface, text_rect)
+        
+        feedback_timer -= 1 
+
 
 
 clock=pygame.time.Clock() 
@@ -158,21 +205,21 @@ def draw_game():
     draw_song_display()
     draw_hit_line()
     draw_notes()
-
+    draw_feedback()
     if button_states['a']:
-            screen.blit(button_red_pressed,(190,500))
+        screen.blit(button_red_pressed, (LANE_X_TARGETS[0] - 40, HIT_ZONE_Y - 40))
     else:
-        screen.blit(button_red,(190,500))
+        screen.blit(button_red, (LANE_X_TARGETS[0] - 40, HIT_ZONE_Y - 40))
         
     if button_states['s']:
-        screen.blit(button_blue_pressed,(300, 500))
+        screen.blit(button_blue_pressed, (LANE_X_TARGETS[1] - 40, HIT_ZONE_Y - 40))
     else:
-        screen.blit(button_blue,(300, 500))
+        screen.blit(button_blue, (LANE_X_TARGETS[1] - 40, HIT_ZONE_Y - 40))
         
     if button_states['d']:
-        screen.blit(button_yellow_pressed,(410,500))
+        screen.blit(button_yellow_pressed, (LANE_X_TARGETS[2] - 40, HIT_ZONE_Y - 40))
     else:
-        screen.blit(button_yellow,(410,500))
+        screen.blit(button_yellow, (LANE_X_TARGETS[2] - 40, HIT_ZONE_Y - 40))
 
 def play_random_song():
     global current_song

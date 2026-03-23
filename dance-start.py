@@ -1,3 +1,9 @@
+#IMPORTANT READ:
+#This game is only inspiration, the author for the songs it's only for the game and don't have prices.
+#It's just for fun and creative, if you use this project for one reason, for example to have got businnes, you got problems.
+#This project it's only a videogame to create for fun, not business.
+#Thank you for reading, goodbye!
+#AUTHOR FOR THE SONGS: Library of Youtube. The songs only use for the videogame.
 import pygame,random,sys
 
 width=800  
@@ -25,7 +31,6 @@ background.set_alpha(128)
 background_dance=pygame.image.load("background_start_game.png").convert_alpha()
 background_dance=pygame.transform.scale(background_dance,(width,height))
 
-# Botones estaticos
 button_blue= pygame.image.load("button_blue.png").convert_alpha() 
 button_blue=pygame.transform.scale(button_blue,(80,80))  
 
@@ -36,13 +41,16 @@ button_yellow=pygame.image.load("button_yellow.png").convert_alpha()
 button_yellow=pygame.transform.scale(button_yellow,(80,80))
 #----------------------------------------------------------------
 button_red_pressed=pygame.image.load("button_red_pressed.png").convert_alpha()
-button_red_pressed=pygame.transform.scale(button_red_pressed,(80,80))
+button_red_pressed=pygame.transform.scale(button_red_pressed,(85,85))
+button_red_pressed.set_colorkey((0,0,0))
 
 button_blue_pressed=pygame.image.load("button_blue_pressed.png").convert_alpha()
-button_blue_pressed=pygame.transform.scale(button_blue_pressed,(80,80))
+button_blue_pressed=pygame.transform.scale(button_blue_pressed,(85,85))
+button_blue_pressed.set_colorkey((0,0,0))
 
 button_yellow_pressed=pygame.image.load("button_yellow_pressed.png").convert_alpha()
-button_yellow_pressed=pygame.transform.scale(button_yellow_pressed,(80,80))
+button_yellow_pressed=pygame.transform.scale(button_yellow_pressed,(85,85))
+button_yellow_pressed.set_colorkey((0,0,0))
 
 
 button_states = {
@@ -64,8 +72,8 @@ def spawn_note():
     
     note = {
         "lane": lane,
-        "x": 400,         # <--- ESTO ES LO QUE FALTA (KeyError: 'x')
-        "y": 280,         # HORIZON_Y (donde está el brillo en la imagen)
+        "x": 400,      
+        "y": 280,        
         "color": colors[lane],
         "hit": False
     }
@@ -76,14 +84,7 @@ def draw_lanes():
     for i in range(3):
         pygame.draw.line(screen, lane_colors[i], (400, HORIZON_Y), (LANE_X_TARGETS[i], 600), 5)
 def draw_hit_line():
-    hit_zone = pygame.Surface((400, 60))
-    hit_zone.set_alpha(80)
-    hit_zone.fill((255, 255, 255))
-    screen.blit(hit_zone, (180, 420)) 
-    
-    
-    pygame.draw.line(screen, (255, 255, 255), (180, 420), (580, 420), 3)
-    pygame.draw.line(screen, (255, 255, 255), (180, 480), (580, 480), 3)
+  pass
 
 def update_notes():
     global combo, score
@@ -133,7 +134,6 @@ def check_hit(lane):
     lane_num = lane_map.get(lane, -1)
     
     for note in notes:
-        # Verificamos que la nota esté en el carril correcto y cerca del HIT_ZONE_Y
         if note["lane"] == lane_num and abs(note["y"] - HIT_ZONE_Y) < 40 and not note["hit"]:
             note["hit"] = True
             score += 100
@@ -258,26 +258,20 @@ while not done:
                 if event.key == pygame.K_a:
                     button_states['a'] = True
                     check_hit('a')
-                    print("Bailas con A - ROJO")
                 if event.key == pygame.K_s:
                     button_states['s'] = True
                     check_hit('s')
-                    print("Bailas con S - AZUL")
                 if event.key == pygame.K_d:
                     button_states['d'] = True
                     check_hit('d')
-                    print("Bailas con D - AMARILLO")
         
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 button_states['a'] = False
-                print("Frenas con A")
             if event.key == pygame.K_s:
                 button_states['s'] = False
-                print("Frenas con S")
             if event.key == pygame.K_d:
                 button_states['d'] = False
-                print("Frenas con D")
     if state=="game" and not show_start:
             update_notes()
             if random.randint(1, 40) == 1:
